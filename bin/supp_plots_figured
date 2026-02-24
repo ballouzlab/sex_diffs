@@ -1,0 +1,207 @@
+# Figure Supp: Co-expression by cell-type and sex.
+
+# Panel A - illustration of methods 
+
+# Panel B
+
+#### GO slim performances for aggregates ("joint") 
+load("aurocs_go_agg_cpm.Rdata")
+aurocs_agg_mat0 = aurocs_agg_mat [, grep("l1", colnames(aurocs_agg_mat), inver=T) ]
+skip = c("Eryth", "HSPC", "Platelet", "Doublet", "ILC", "CD8 Proliferating", "CD4 Proliferating")
+filt =   is.na(match( colnames(aurocs_agg_mat0), skip) )
+colsex2 = c(colsex, viridis(11)[5]) 
+
+#### GO slim performances for aggregates split by sex
+load("aurocs_go_agg_cpm_sex.Rdata")   
+ms =  match( gsub("\\.[1-2]", "", agg_cells), colpals2[,9])
+fs = rep(19, length(ms))
+fs[grep("\\.1", agg_cells)] = 15 
+filt2 =  is.na(match(  gsub("\\.[1-2]", "", agg_cells) , skip)) 
+
+m = match( gsub("\\.1", "", colnames(aurocs_agg_mat[,fs==15 & filt2])), colpals2[,9])
+mm = match( colnames(aurocs_agg_mat0)[filt], colpals2[,9])
+
+pdf("agg_performances_cpm.pdf")   
+    aggmean1.eg  =  colMeans(aurocs_agg_mat[, ][,fs==15 & filt2 ])
+    aggmean2.eg  =  colMeans(aurocs_agg_mat[, ][,fs==19 & filt2 ])
+    aggmean.eg  =  colMeans(aurocs_agg_mat0[ ,filt]) 
+    vioplot( list(aggmean1.eg, aggmean2.eg , aggmean.eg ) , ylim=yrange, col = 0, main= "", border = colsex2,  rectCol=colsex2, lineCol= make_transparent(colsex2), colMed = colsex2, lwd=3 )
+    beeswarm(  list(aggmean1.eg, aggmean2.eg, aggmean.eg  ) , pwcol = c(rep(colpals2[m,10],2), colpals2[mm,10])  , main= "", cex=3, pch=19, add=T, corral="random") 
+dev.off() 
+
+
+# Panel C (all GO groups, picked examples GO:0003735 and GO:0007067) 
+pdf("agg_performances_per_gogroup_cpm.pdf")   
+ for( pid in rownames(aurocs_agg_mat)   ){
+    i = which(rownames(aurocs_agg_mat) ==pid)  
+    aggmean1.eg  =  aurocs_agg_mat[,][i,fs==15 & filt2 ]
+    aggmean2.eg  =  aurocs_agg_mat[,][i,fs==19 & filt2 ]
+    aggmean.eg  =  aurocs_agg_mat0[i,filt] 
+    vioplot( list(aggmean1.eg, aggmean2.eg , aggmean.eg ) , col = 0, main= pid, border = colsex2,  rectCol=colsex2, lineCol= make_transparent(colsex2), colMed = colsex2, lwd=3 )
+    beeswarm(  list(aggmean1.eg, aggmean2.eg, aggmean.eg  ) , pwcol = c(rep(colpals2[m,10],2), colpals2[mm,10])  , main= pid, cex=3, pch=19, add=T, corral="random") 
+} 
+dev.off()  
+
+
+pdf("legend_coexp.pdf") 
+plot(0) 
+legend("right", col = colpals2[sort(m),10], pch=19, leg= colpals2[sort(m),9]) 
+dev.off() 
+
+
+# Panel D - comparing performances in GTRD 
+ 
+
+
+ 
+
+
+# Panel E - fraction of links changed (connections) 
+load("ncounts.Rdata")  
+sex = rep(3, 100 ) 
+sex[colcols[,1] == colsex[1] ] = 1 
+sex[colcols[,1] == colsex[2] ] = 2 
+
+legcols = cbind(celltypes, sex , colcols[,c(2,1)], rowcols)
+
+a = as.numeric(as.factor(col1cols)  ) 
+b = as.numeric(as.factor(col2cols)  ) 
+c = 1* (a == b )
+
+row2cols = legcols[match(all_comp3[,2], legcols[,3]  ) ,5] 
+row1cols = legcols[match(all_comp3[,1], legcols[,3]  ) ,5] 
+aa = as.numeric(as.factor(row1cols)  ) 
+bb = as.numeric(as.factor(row2cols)  ) 
+cc = 1*(aa == bb )
+
+N = 108272970
+all_comp3[,1] 
+
+tt2 = paste0(meta[f,4],".", meta[f,5], ".cpm.agg" ) 
+tt2 = gsub("3.", "", tt2 )
+tt2[grep("all", tt2)] = grep("pbmc_agg", tt, val=T) 
+ft1 = !is.na(match(all_comp3[,1], tt2) ) 
+ft2 = !is.na(match(all_comp3[,2], tt2) ) 
+filts = ft1  & ft2 
+
+sex1 = rep(3, length(all_comp3[,1])) 
+sex2 = rep(3, length(all_comp3[,2])) 
+
+sex1[ grep("\\.1", all_comp3[,1]) ] = 1
+sex1[ grep("\\.2", all_comp3[,1]) ] = 2
+
+sex2[ grep("\\.2", all_comp3[,2]) ] = 2 
+sex2[ grep("\\.1", all_comp3[,2]) ] = 1 
+
+sex1[ grep("^male", all_comp3[,1])] = 1
+sex2[ grep("^male", all_comp3[,2])] = 1 
+
+sex2[ grep("^female", all_comp3[,2])] = 2
+sex1[ grep("female", all_comp3[,1])]  = 2
+
+cell1 =  gsub(".cpm.agg|\\.1|\\.2", "", all_comp3[,1])
+cell2 =  gsub(".cpm.agg|\\.1|\\.2", "", all_comp3[,2])
+
+cell1 =  gsub(".cpm.agg", "", cell1)
+cell2 =  gsub(".cpm.agg", "", cell2)
+
+cell1[ grep("agg|pbmc", cell1)] = "all"
+cell2[ grep("agg|pbmc", cell2)] = "all"
+ 
+level1 = rep("l2", length(all_comp3[,1])) 
+level2 = rep("l2", length(all_comp3[,1])) 
+
+level1[ grep("l1", all_comp3[,1]) ] = "l1"
+level2[ grep("l1", all_comp3[,2]) ] = "l1"
+
+level1[ grep("Myl|Lymph|pbmcs", all_comp3[,1]) ] = "l0"
+level2[ grep("Myl|Lymph|pbmcs", all_comp3[,2]) ] = "l0"
+
+level1[ grep("female_agg|male_agg|^agg", all_comp3[,1]) ] = "mix"
+level2[ grep("female_agg|male_agg|^agg", all_comp3[,2]) ] = "mix"
+
+cc = 1*(cell1 == cell2) 
+dc = 1*(sex1 == sex2) 
+cc = factor(cc)
+dc = factor(dc)
+filts = level1 == "l2" & level2 == "l2"
+
+testcols =   (rocket(6))[2:5][factor(paste( dc[filts] , cc[filts]  ) ) ] 
+
+leg = unique(cbind(testcols, (paste( dc[filts] , cc[filts]  )  )  )  )
+leg = leg[c(3,2,1,4),]
+
+temp = spread( all_comp3[filts, 1:3], key=2, value=3 , fill=0) 
+rownames(temp)  = temp[,1] 
+temp2 = apply(temp, 2, as.numeric ) / N 
+m = match( meta[f,10], colnames(temp2)) 
+temp3 = temp2[m,m]
+
+
+pdf("percent_frac.pdf")
+vioplot( all_comp3[filts,3]/N ~ dc[filts]+cc[filts] , xlab=""   , ylab="Fraction links changed" , names=c("Cross sex and cell-type", "Cross cell-type", "Cross sex", "Same"), col=leg[,1]) 
+heatmap.3(temp3, col=(cols11), ColSideCol= meta[f,2], RowSideCol=colsex[as.numeric(meta[f,5])] )
+dev.off() 
+
+
+
+
+# Panel F - number of genes changed 
+
+nd1 = colSums(abs(rs_mat) >= 3  )
+save(nd1, file="nd_residuals_sum.Rdata")
+
+temp = cbind(do.call(rbind, strsplit(names(nd1) , " " ) ) , nd1) 
+temp2 = rbind(temp, temp[,c(2,1,3)] ) 
+temp2 = as.data.frame(temp2) 
+temp22 = spread(temp2, key=2, valu=3, fill=0 ) 
+temp3 = temp22[,-1] 
+rownames(temp3)  = temp22[,1] 
+temp4 = apply(temp3, 2, as.numeric) 
+N = 14716 
+o = order(as.numeric(rownames(temp3))  ) 
+perc_nd = temp4[o,o]/N
+rownames(perc_nd) = 1:100 
+f = meta[,7] == "l2" 
+
+
+pdf("percent_frac_nd.pdf")
+heatmap.3(perc_nd[f,f], ColSideCol = meta[f,2], RowSideCol = colsex[as.numeric(meta[f,5])]  , col=cols11) 
+dev.off() 
+
+
+files = gsub(".other.Rdata", ".Rdata", meta[,1])
+files = gsub("/azimuth_nets_broad/", "/azimuth_nets_broad/aggs/", files)
+ 
+
+ba = rep( files, 100 ) 
+bb =  unlist(lapply(1:100, function(i) rep(files[i], 100) ) )
+bc = (ba != bb)
+
+# celltype
+ca = meta[ match(ba, files),4]
+cb = meta[ match(bb, files),4]
+cc = 1*(ca == cb)
+cc = factor(cc)
+
+# sex 
+da = meta[ match(ba, files),5]
+db = meta[ match(bb, files),5]
+dc = 1*(da == db)
+dc = factor(dc)
+
+
+ea = meta[ match(ba, files),7]
+eb = meta[ match(bb, files),7]
+
+filts = (ba != bb) &  ea == "l2" & eb == "l2" 
+
+testcols =  rocket(4)[factor(paste( dc[filts] , cc[filts]  ) ) ] 
+
+leg = unique(cbind(testcols, (paste( dc[filts] , cc[filts]  )  )  )  )
+leg = leg[c(3,2,1,4),]
+
+a4 = array(perc_nd )
+vioplot(a4[filts] ~ dc[filts] + cc[filts] , xlab=""   , ylab="Fraction genes changed" , names=c("Cross sex and cell-type", "Cross cell-type", "Cross sex", "Same"), col=leg[,1])  
+
+
