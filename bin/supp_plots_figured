@@ -1,6 +1,19 @@
 # Figure Supps:  
+### Cell-type proportions and age changes.
+load(file="cors_counts_age.Rdata") 
+temp = apply(cors_all[,c(4,7,10)],2, as.numeric ) 
+temp2 = apply(cors_all[,c(4,7,10)-1],2, as.numeric ) 
+rownames(temp2) = rownames(tempfrac0) 
+rownames(temp) = rownames(tempfrac0) 
+a =  (c(temp[,1], temp[,2], temp[,3]) )
+b =  (c(rep("All",n), rep("Female",n), rep("Male",n))) 
+d = rep(colpals2a[,10],3) 
+aa =  -log10(c(temp2[,1], temp2[,2], temp2[,3]) )  
+bb = 2 *(aa >= -log10(0.05) ) + 1 
+pdf("correlations_age_l2_merged_skip.pdf")
+beeswarm(a~b, pch=19, pwcol=d , ylab="Correlations (rho)", xlab="", bty="n",pwcex=bb) 
+dev.off()
 
-### Age 
 
 ### Co-expression by cell-type and sex.
 #### Panel B: 
