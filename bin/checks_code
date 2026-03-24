@@ -36,7 +36,7 @@ props1 = props1[m,]
 prop0.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], transform="logit")
 prop1.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], transform="asin")
 
-
+save(tempfrac0,freq_sexp0, props0, tempfrac0lf, tempfrac0lm, phens,  tempfrac0lf.d, tempfrac0lf.d2,  tempfrac0lm.d, tempfrac0lm.d2, tempfrac0l.d, tempfrac0l.d2, prop0.list, prop1.list, file="props_tests_cell_l2_final_rev.Rdata")
 # QQ plots
 pdf("qq_plots.pdf", width=12, height=5)
 for(i in 1:24){ 
