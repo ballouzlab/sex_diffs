@@ -1,4 +1,4 @@
-
+load("props_tests_cell_l2_final_rev.Rdata")
 # original tests 
 test_wilcox  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) 
 test_t  = lapply(1:dim(tempfrac0)[1], function(i) t.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) )
