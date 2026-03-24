@@ -1,0 +1,455 @@
+### Supplementary: Sex-DEG enrichments 
+
+library(tidyverse)
+source("bin/helper.R")
+load("bin/palette2.Rdata")
+load("data/seurat_sex_degs.Rdata") 
+load("annnotations/annots_x_exp.Rdata")
+
+sex_genes_mat_wilcox = sex_genes_mat[,grep("wilcox", colnames(sex_genes_mat)  ) ]
+sex_genes_mat_wilcox_up = sex_genes_mat_wilcox[,grep("up", colnames(sex_genes_mat_wilcox)  ) ]
+sex_genes_mat_wilcox_down = sex_genes_mat_wilcox[,grep("down", colnames(sex_genes_mat_wilcox)  ) ]
+
+
+load("../../annotations/annots_x.Rdata")
+load("../../annotations/annots_extra_sch.Rdata")
+
+colnames(annots_sch2) = gsub("TEMNPPP", "male", ((gsub("male", "female", gsub("female", "TEMNPPP", colnames(annots_sch2) ) ) ) ) )
+g1 = rownames(annots_sch2)
+g2 = rownames(annots_x)
+
+save(data_mat, data_x, annots_sch , annots_sch2,file="annotations/annots_extra_sch.Rdata")
+
+ 
+m = match(g2,g1)
+temp = annots_sch2[m,]
+temp[is.na(temp)] = 0
+annots_x_exp = cbind(annots_x, temp)
+
+
+Schmiedel2018_female  = 1*(rowSums(annots_x_exp[,grep("female", colnames(annots_x_exp) )  ])>0)
+Schmiedel2018_male  = 1*(rowSums(annots_x_exp[,grep("^male", colnames(annots_x_exp) )  ])>0) 
+annots_x_exp = cbind(annots_x_exp[,1:50], Schmiedel2018_male, Schmiedel2018_female, annots_x_exp[,51:80])
+ 
+
+temp = read.table("annotations/huang_sex_2021",header=T)
+temp = as.data.frame(temp)
+temp_old = temp[temp[,2] == "OM_v_OF",-2]
+temp_young = temp[temp[,2] == "YM_v_YF",-2]
+
+temp_old = spread(temp_old, key=1, val=3, fill=0) 
+temp_young = spread(temp_young, key=1, val=3, fill=0) 
+
+rownames(temp_old) = temp_old[,1] 
+rownames(temp_young) = temp_young[,1] 
+
+temp_young = temp_young[,-1]
+temp_old = temp_old[,-1]
+
+g2 = rownames(temp_old)
+g1 = rownames(temp_young)
+
+temp_young = apply(temp_young, 2, as.numeric)
+temp_young_M = 1*(temp_young > 0)
+temp_young_F = -1*(temp_young < 0)
+huang_young = temp_young_M + temp_young_F
+rownames(huang_young)  =  g1
+
+
+temp_old = apply(temp_old, 2, as.numeric)
+temp_old_M = 1*(temp_old > 0)
+temp_old_F = -1*(temp_old < 0)
+huang_old = temp_old_M + temp_old_F
+rownames(huang_old)  =  g2
+
+g3 = unique(c(g1,g2))
+m = match(g3,g2)
+temp_old_M2 = temp_old_M[m,]
+temp_old_F2 = temp_old_F[m,]
+rownames(temp_old_M2) = g3
+rownames(temp_old_F2) = g3
+colnames(temp_old_M2) = paste("male old", colnames(temp_old_M))
+colnames(temp_old_F2) = paste("female old", colnames(temp_old_F))
+
+m = match(g3,g1)
+temp_young_F2 = temp_young_F[m,]
+temp_young_M2 = temp_young_M[m,]
+rownames(temp_young_M2) = g3
+rownames(temp_young_F2) = g3
+colnames(temp_young_M2) = paste("male young", colnames(temp_young_M))
+colnames(temp_young_F2) = paste("female young", colnames(temp_young_F))
+
+ 
+temp_old_F2[is.na(temp_old_F2)] = 0
+temp_young_M2[is.na(temp_young_M2)] = 0
+temp_young_F2[is.na(temp_young_F2)] = 0
+temp_old_M2[is.na(temp_old_M2)] = 0
+
+
+temp_old_F2 = 1*(temp_old_F2 != 0) 
+temp_young_F2 = 1*(temp_young_F2 != 0) 
+
+huang2021 = cbind(temp_young_F2, temp_young_M2, temp_old_F2, temp_old_M2)
+
+ 
+huang2021_female_old = 1*(rowSums(temp_old_F2, na.rm=T) > 0) 
+huang2021_male_old = 1*(rowSums(temp_old_M2, na.rm=T)> 0) 
+huang2021_female_young = 1*(rowSums(temp_young_F2, na.rm=T)> 0) 
+huang2021_male_young = 1*(rowSums(temp_young_M2, na.rm=T)> 0) 
+
+huang2021 = cbind(huang2021_female_old, huang2021_male_old, huang2021_female_young, huang2021_male_young, huang2021) 
+
+
+g1 = rownames(huang2021)
+g2 = rownames(annots_x_exp)
+ 
+m = match(g2,g1)
+temp = huang2021[m,]
+temp[is.na(temp)] = 0
+annots_x_exp2 = cbind(annots_x_exp[,1:52], temp[,1:4], annots_x_exp[,53:82], temp[,5:116])
+
+
+voc = cbind(colnames(annots_x_exp2), "", colSums(annots_x_exp2) )
+ 
+gene_set_cols = matrix(0, ncol=2, nrow=5)
+gene_set_cols[1,] = c("Sex chromosomes","#FDD700")
+gene_set_cols[2,] = c("Sex-DE","#8A181A")
+gene_set_cols[3,] = c("XCI-escape","#692C89")
+gene_set_cols[4,] = c("Population-DE","#6ABD45")
+gene_set_cols[5,] = c("Age-DE","grey")
+ 
+
+voc[,2] = gene_set_cols[2,1]
+
+voc[grep("^chr", voc[,1]),2] = gene_set_cols[1,1]
+voc[grep("^Xi", voc[,1]),2] = gene_set_cols[3,1]
+
+voc[grep("^pop", voc[,1]),2] = gene_set_cols[4,1]
+voc[grep("^age", voc[,1]),2] = gene_set_cols[5,1]
+
+
+
+save(annots_x_exp2, voc,file="annotations/annots_x_exp.Rdata")
+
+
+
+
+
+ 
+enrich_degs_x_exp = lapply(1:dim(sex_genes_mat_wilcox)[2], function(i) gene_set_enrichment( names(which(sex_genes_mat_wilcox[,i] > 0) ) , annots_x_exp2, voc) )
+pvals_exp = sapply(1:length(enrich_degs_x_exp), function(i) enrich_degs_x_exp[[i]][,5])
+
+pvals_exp = apply(pvals_exp, 2, as.numeric)
+rownames(pvals_exp) =  enrich_degs_x_exp[[1]][,1]
+colnames(pvals_exp) =  colnames(sex_genes_mat_wilcox) 
+
+padj = apply(pvals_exp, 2, p.adjust)
+rownames(padj) =  rownames(pvals_exp) 
+colnames(padj) =  colnames(pvals_exp) 
+
+pp = sapply(1:length(enrich_degs_x_exp), function(i) enrich_degs_x_exp[[i]][,3])
+pp = apply(pp, 2, as.numeric)
+rownames(pp) =  rownames(pvals_exp) 
+colnames(pp) =  colnames(pvals_exp) 
+
+pp = pp + 1  
+
+
+skip = c("Eryth", "HSPC", "Platelet")
+filt =  is.na(match(  celltypes, skip) ) &  grepl("up|down", colnames(padj)  ) 
+
+filt2 =  (rowSums(pp)  > 0 ) 
+tp = rowSums(pp)
+tp[ grep("Xi", rownames(pp))  ]  = 0 
+tp[14] = 1 # escape genes
+tp[34] = 1 # whlbld specific escape
+tp[57:198] = 0 
+filt3  = tp > 0
+
+ 
+
+row_cols = rbind(gene_set_cols[match(voc[,2], gene_set_cols[,1]),2], "white")
+colnames(row_cols) = voc[,1]
+col_cols = t(col_info[,2:3])
+colnames(col_cols) = rep(celltypes,3)
+
+save(gene_set_cols, col_cols, row_cols, file="cols_enrich.Rdata")
+
+col_filt = which(filt)
+row_filt = which(filt3)
+
+
+col_cols2 = col_cols
+col_cols2[1,] = col_cols[2,]
+col_cols2[2,] = col_cols[1,]
+row_cols2 = row_cols 
+row_cols2[1,] = row_cols[2,]
+row_cols2[2,] = row_cols[1,]
+
+
+pdf("sex_degs_enrich_dotplot.pdf", width=15, height=10)
+dotplot_extra_dendro( padj, pvals_exp, pp , rownames(padj), celltypes,  filt_row = row_filt , filt_col =col_filt   , colcol= t(col_cols) , rowcol= t(row_cols)  , rowden = T , colden = T ) 
+dotplot_extra_dendro( padj, pvals_exp, pp , rownames(padj), celltypes,  filt_row = row_filt , filt_col =col_filt   , colcol= t(col_cols2) , rowcol= t(row_cols2)  , rowden = T , colden = T ) 
+dev.off() 
+
+
+save(pvals_exp, padj, row_filt, col_filt, col_cols, row_cols, pp, celltypes, enrich_degs_x_exp, file="enrich/enrich_degs_x_exp2.Rdata")
+
+
+dotplot_extra_dendro( padj, pvals_exp, pp , rownames(padj), celltypes,  filt_row = 1:198 , filt_col =col_filt   , colcol= t(col_cols) , rowcol= t(row_cols2)  , rowden = T , colden = T ) 
+
+
+
+
+
+
+type = "azimuth_markers"
+load("annotations/annots_az.Rdata")
+
+annots = annots_az
+voc = cbind(colnames(annots), "", colSums(annots) )
+ 
+enrich_degs = lapply(1:dim(sex_genes_mat_wilcox)[2], function(i) gene_set_enrichment( names(which(sex_genes_mat_wilcox[,i] > 0) ) , annots, voc) )
+pvals = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,5])
+
+pvals = apply(pvals, 2, as.numeric)
+rownames(pvals) =  enrich_degs[[1]][,1]
+colnames(pvals) =  colnames(sex_genes_mat_wilcox) 
+
+padj = apply(pvals, 2, p.adjust)
+rownames(padj) =  rownames(pvals) 
+colnames(padj) =  colnames(pvals) 
+
+pp = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,3])
+pp = apply(pp, 2, as.numeric)
+rownames(pp) =  rownames(pvals) 
+colnames(pp) =  colnames(pvals) 
+
+pp = pp + 1  
+
+save(pvals, padj, col_filt, col_cols, pp, celltypes, enrich_degs, 
+     file=paste0("enrich/enrich_degs_annots_", type,".Rdata")) 
+
+
+ 
+ 
+
+
+type = "msig"
+load("annotations/msigdb.v2022.1.Hs.symbols.Rdata")
+annots_msig = msigdb
+rm(msigdb)
+
+
+c2_sub = grep("KEGG|BIOCARTA|REACTOME", msig.voc[,1])
+c1 =  msig.voc[,2] == "C1"
+h1 = msig.voc[,2] == "HALLMARK" 
+c7 = msig.voc[,2] == "C7"
+c3 =  msig.voc[,2] == "C3"
+
+
+annotsc2  = annots_msig[,c2_sub]
+annotsc1  = annots_msig[,c1]
+annotsc3 = annots_msig[,c3]
+annotsh = annots_msig[,h1]
+annotsc7  = annots_msig[,c7]
+ 
+
+load("annotations/annots_horm.Rdata")
+horm.voc = cbind(colnames(annots_horm),  colSums(annots_horm), "hormones")
+
+load("annotations/annots_hgnc.Rdata")
+hgnc.voc  = voc 
+annots_hgnc = annots 
+
+load("annotations/annots_lig.Rdata") 
+lig.voc = cbind(colnames(annots_lig),  colSums(annots_lig), "ligs")
+
+load("annotations/annots_jasp.Rdata") 
+jasp.voc = voc 
+
+load("annotations/annots_transfc.Rdata") 
+transfc.voc = voc 
+
+load("annotations/annots_motifs.Rdata")
+motifs.voc = voc 
+
+load("annotations/annots_tfs.Rdata")
+tfs.voc = voc 
+
+
+load("annotations/go_slim.RData")
+load("annotations/annots_GO.Rdata")
+fsums = colSums(annots_GO) >= 20 &  colSums(annots_GO) <= 1000
+
+go_ids = read.table("annotations/goimmune_gos")
+ 
+
+m = match (go_ids[,1], colnames(annots_GO)) 
+f.a = !is.na(m)
+f.aa = m[f.a]
+annots_goim = annots_GO[,f.aa]
+
+annots_go_sub = annots_GO[,fsums]
+
+ 
+load("annotations/annots_immport.Rdata")
+annots_immp = annots
+immp.voc = voc
+
+
+
+
+types = c("go_sub", "goslim","immport","goimm","tfs","transfac","jasp","horm","hgnc","lig","motifs","msig_c1","msig_c2","msig_c3","msig_hall","msig_c7")
+
+annots_list = list(annots_go_sub, go_slim, annots_immp, annots_goim, annots_tfs, annots_transfc, annots_jasp, annots_horm, annots_hgnc, annots_lig, annots_motifs, annotsc1, annotsc2, annotsc3, annotsh, annotsc7)
+
+voc_list = list(GO.voc, GO.voc, immp.voc , GO.voc , tfs.voc , transfc.voc, jasp.voc, horm.voc, hgnc.voc , lig.voc, motifs.voc, msig.voc, msig.voc, msig.voc, msig.voc, msig.voc)
+
+
+
+
+extract_results <- function( enrich, gene_set){ 
+    pvals_funcs = sapply(1:length(enrich), function(i)  enrich[[i]][,5] ) 
+    p_funcs =  apply(sapply(1:length(enrich), function(i)  enrich[[i]][,3] ),2, as.numeric) + 1   
+    padj_funcs = apply(pvals_funcs, 2, p.adjust)
+
+    rownames(p_funcs)     = enrich[[1]][,1]
+    rownames(pvals_funcs) = enrich[[1]][,1]
+    rownames(padj_funcs)  = enrich[[1]][,1]
+    colnames(p_funcs)     = colnames(gene_set)
+    colnames(pvals_funcs) = colnames(gene_set)
+    colnames(padj_funcs)  = colnames(gene_set)
+    q_func = as.numeric(enrich[[1]][,4]) 
+    names(q_func) = enrich[[1]][,1]
+   return( list(p_funcs,pvals_funcs, padj_funcs , q_func)  )
+}
+
+
+
+results_list=list()
+for(i in 1:length(types)){
+  
+  type = types[i]
+  annots = annots_list[[i]]
+  voc = voc_list[[i]] 
+
+  enrich_degs = lapply(1:dim(sex_genes_mat_wilcox)[2], function(i) gene_set_enrichment( names(which(sex_genes_mat_wilcox[,i] > 0) ) , annots, voc) )
+  pvals = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,5])
+  
+  pvals = apply(pvals, 2, as.numeric)
+  rownames(pvals) =  enrich_degs[[1]][,1]
+  colnames(pvals) =  colnames(sex_genes_mat_wilcox) 
+  
+  padj = apply(pvals, 2, p.adjust)
+  rownames(padj) =  rownames(pvals) 
+  colnames(padj) =  colnames(pvals) 
+  
+  pp = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,3])
+  pp = apply(pp, 2, as.numeric)
+  rownames(pp) =  rownames(pvals) 
+  colnames(pp) =  colnames(pvals) 
+  
+  pp = pp + 1  
+   
+  save(pvals, padj, col_filt, col_cols, pp, celltypes, enrich_degs, file=paste0(maindir,"/enrich/enrich_degs_annots_", type,".Rdata")) 
+   results = extract_results(enrich_degs,sex_genes_mat_wilcox )
+   results_list[[i]] = results
+
+}
+
+names(results_list) = types
+
+save( results_list, types, file="enrich/enrich_degs_parsed.Rdata")
+
+
+
+load(paste0(maindir,"/eqtls/sexdeg_overlap_eqtls.Rdata"))
+load(paste0(maindir,"/eqtls/sexdegs_overlap_Xchrm.Rdata"))
+
+g1 = rownames(female_mat)
+g2 = rownames(male_mat)
+g3 = rownames(joint_mat)
+g4 = rownames(sb_mat)
+g5 = rownames(nonpar_female_mat)
+g6 = rownames(nonpar_femalee_mat)
+g7 = rownames(nonpar_male_mat)
+g8 = rownames(par_female_mat)
+g9 = rownames(par_joint_mat)
+g10 = rownames(par_male_mat)
+all_g = unique(c(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10)) 
+
+colnames(female_mat) = paste("female eqtls", colnames(female_mat))
+colnames(male_mat) = paste("male eqtls", colnames(male_mat))
+colnames(joint_mat) = paste("joint eqtls", colnames(joint_mat))
+colnames(sb_mat) = paste("sbeqtls", colnames(sb_mat))
+colnames(nonpar_female_mat) = paste("nonpar female", colnames(nonpar_female_mat))
+colnames(nonpar_femalee_mat) = paste("nonpar-esc female", colnames(nonpar_femalee_mat))
+colnames(nonpar_male_mat) = paste("nonpar male", colnames(nonpar_male_mat))
+colnames(par_female_mat) = paste("par female", colnames(par_female_mat))
+colnames(par_joint_mat) = paste("par male", colnames(par_joint_mat))
+colnames(par_male_mat) = paste("par joint", colnames(par_male_mat))
+
+m1 = match(all_g,g1)
+m2 = match(all_g,g2)
+m3 = match(all_g,g3)
+m4 = match(all_g,g4)
+m5 = match(all_g,g5)
+m6 = match(all_g,g6)
+m7 = match(all_g,g7)
+m8 = match(all_g,g8)
+m9 = match(all_g,g9)
+m10 = match(all_g,g10)
+
+
+sex_eqtls_mat_all = cbind( female_mat[m1,], male_mat[m2,], joint_mat[m3,],  sb_mat[m4,] , nonpar_female_mat[m5,], nonpar_femalee_mat[m6,], nonpar_male_mat[m7,], par_female_mat[m8,], par_joint_mat[m9,], par_male_mat[m10,]) 
+
+rownames(sex_eqtls_mat_all)  = all_g
+sex_eqtls_mat_all[is.na(sex_eqtls_mat_all)] = 0 
+sex_eqtls_mat_all = 1*(sex_eqtls_mat_all !=0)
+
+save( sex_eqtls_mat_all, file="eqtls/sex_eqtls_all.Rdata")
+f1 = (colSums(sex_eqtls_mat_all) > 2) 
+sex_eqtls_mat_all = sex_eqtls_mat_all[,f1]
+
+
+
+
+
+results_list=list()
+for(i in 1:length(types)){
+  
+  type = types[i]
+  annots = annots_list[[i]]
+  voc = voc_list[[i]] 
+ print(type)
+  enrich_degs = lapply(1:dim(sex_eqtls_mat_all)[2], function(i) gene_set_enrichment( names(which(sex_eqtls_mat_all[,i] > 0) ) , annots, voc) )
+  pvals = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,5])
+  
+  pvals = apply(pvals, 2, as.numeric)
+  rownames(pvals) =  enrich_degs[[1]][,1]
+  colnames(pvals) =  colnames(sex_eqtls_mat_all) 
+  
+  padj = apply(pvals, 2, p.adjust)
+  rownames(padj) =  rownames(pvals) 
+  colnames(padj) =  colnames(pvals) 
+  
+  pp = sapply(1:length(enrich_degs), function(i) enrich_degs[[i]][,3])
+  pp = apply(pp, 2, as.numeric)
+  rownames(pp) =  rownames(pvals) 
+  colnames(pp) =  colnames(pvals) 
+  
+  pp = pp + 1  
+   
+  save(pvals, padj, col_filt, col_cols, pp, celltypes, enrich_degs, file=paste0(maindir,"/enrich/enrich_eqtls_annots_", type,".Rdata")) 
+   results = extract_results(enrich_degs,sex_eqtls_mat_all )
+   results_list[[i]] = results
+
+}
+
+names(results_list) = types
+
+save( results_list, types, file=paste0(maindir,"/enrich/enrich_eqtls_parsed.Rdata")) 
+
+
+
