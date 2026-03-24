@@ -1,5 +1,16 @@
-# Tests of normality
+### Supplementary: normality tests 
 load("phen_final.Rdata")
+load("pcs.Rdata")
+m = match(phens[,1], pcs[, 1]  ) 
+pcs = pcs[m,]
+age = (phens$age)
+sex = factor(phens$sex)
+pc1 = pcs$pc1
+pc2 = pcs$pc2
+pc3 = pcs$pc3
+pc4 = pcs$pc4
+
+
 skip = c("Doublet",  "HSPC", "Platelet", "Eryth")
 filt = is.na(match( metadata$predicted.celltype.l3 , skip)  ) & !is.na(metadata$predicted.celltype.l3)  
 freq1 = plyr::count( cbind( metadata$individual ,as.character(metadata$predicted.celltype.l3))[filt,] ) 
@@ -37,7 +48,7 @@ prop0.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt],
 prop1.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], transform="asin")
 
 save(tempfrac0,freq_sexp0, props0, tempfrac0lf, tempfrac0lm, phens,  tempfrac0lf.d, tempfrac0lf.d2,  tempfrac0lm.d, tempfrac0lm.d2, tempfrac0l.d, tempfrac0l.d2, prop0.list, prop1.list, file="props_tests_cell_l2_final_rev.Rdata")
-# QQ plots
+#####  QQ plots
 pdf("qq_plots.pdf", width=12, height=5)
 for(i in 1:24){ 
   t1 = shapiro_test(prop0.list$TransformedProps[i,]) 
@@ -50,9 +61,7 @@ for(i in 1:24){
 } 
 dev.off()
 
- 
- 
-# Density plots
+#####  Density plots
 pdf("den_plots.pdf", width=12, height=5)
 for(i in 1:24){ 
   t1 = shapiro_test(prop0.list$TransformedProps[i,]) 
@@ -65,7 +74,7 @@ for(i in 1:24){
 } 
 dev.off()
  
-# Density plots
+##### Density plots
 pdf("den_plots_original.pdf")
 for(i in 1:24){ 
   ymax = max( c(tempfrac0l.d[[i]]$y, tempfrac0lm.d[[i]]$y, tempfrac0lf.d[[i]]$y) )
@@ -77,16 +86,7 @@ for(i in 1:24){
 dev.off()
 
 
-# PCs (from genotypes)
-load("pcs.Rdata")
-m = match(phens[,1], pcs[, 1]  ) 
-pcs = pcs[m,]
-age = (phens$age)
-sex = factor(phens$sex)
-pc1 = pcs$pc1
-pc2 = pcs$pc2
-pc3 = pcs$pc3
-pc4 = pcs$pc4
+##### other 
 clusters = metadata$predicted.celltype.l3[filt]
 samples = metadata$individual[filt]
  
