@@ -1,0 +1,154 @@
+### Supplementary: DEG comparison between Seurat v4 and v5
+
+setwd(dir) 
+metadata  <- readRDS("metadata_final.Rds")
+freq = plyr:: count( metadata$predicted.celltype.l3 )
+celltypes = freq[,1]
+celltypes = celltypes[-c(17,29)]
+skip = c("Eryth", "HSPC", "Platelet")
+filt =  is.na(match(  celltypes, skip) )     
+celltypes = celltypes[filt]
+
+all_genes = list()
+res_all = list() 
+for(celltype in celltypes){ 
+  load(paste0("mast_DE_v5A_", celltype ,".Rdata")) 
+  mast = test 
+  load(paste0("mast_DE_v5B_", celltype ,".Rdata")) 
+  mast_adj = test 
+  load(paste0("wilcox_DE_", celltype, ".Rdata")) 
+  orig = test
+  
+  load(paste0("mast_DE_v4_", celltype ,".Rdata")) 
+  mast_seuratv5 = test   
+  all_genes = append(all_genes, c(rownames(orig)))
+  res_all[[celltype]] = list(mast, mast_adj, orig, mast_seuratv5) 
+}
+
+##### Load seurat v4 results
+all_genes = unique(unlist(all_genes))
+orig_all = matrix(NA,nrow=length(all_genes), ncol = length(celltypes)) 
+rownames(orig_all) = all_genes
+colnames(orig_all) = celltypes
+effsize_all = orig_all * 0 
+for( celltype in celltypes){ 
+  orig = res_all[[celltype]][[3]]
+  m = match(all_genes, rownames(orig) )
+  f1 = !is.na(m)
+  f2 = m[f1]
+  orig_all[f1,celltype] = orig$p_val[f2]  
+  effsize_all[f1,celltype] = orig$avg_log2FC[f2]  
+}
+
+##### Load seurat v5 results 
+orig_all2 = matrix(NA,nrow=length(all_genes), ncol = length(celltypes)) 
+rownames(orig_all2) = all_genes
+colnames(orig_all2) = celltypes
+effsize_all2 = orig_all2 * 0 
+for( celltype in celltypes){ 
+  orig = res_all[[celltype]][[4]]
+  m = match(all_genes, rownames(orig) )
+  f1 = !is.na(m)
+  f2 = m[f1]
+  orig_all2[f1,celltype] = orig$p_val[f2]  
+  effsize_all2[f1,celltype] = orig$avg_log2FC[f2]  
+}
+
+effsize_all[is.na(effsize_all)]  = 0  
+effsize_all2[is.na(effsize_all2)]  = 0  
+ 
+ 
+
+temp = (orig_all2 )
+temp[is.na(temp)] = 1 
+
+min_pval = apply(temp , 1, min )
+global_fdr = p.adjust(min_pval, method = "fdr")
+global_pval_adj = p.adjust(min_pval )
+chi2 = rowSums(log(temp), na.rm=T)*-2 
+df = 2*sapply(1:length(chi2), function(i) sum(!is.na(temp[i,]) ))
+fishers_pval = pchisq(chi2, df, lower.tail = FALSE)
+global_fdr2 = p.adjust(fishers_pval, method = "fdr")
+global_pval_adj2 = p.adjust(fishers_pval )
+fishers_pval2 = pchisq(chi2, 2*length(celltypes), lower.tail = FALSE)
+global_fdr3 = p.adjust(fishers_pval2, method = "fdr")
+global_pval_adj3 = p.adjust(fishers_pval2 )
+tests2 = lapply(1:length(temp[,1]), function(i) rank(temp[i,])* temp[i,]/rank(temp[i,]) ) 
+simes_pvals = sapply(1:length(tests2), function(i) min(tests2[[i]]))
+simes_padj = p.adjust(simes_pvals, method = "bonf")
+simes_padj2 = p.adjust(simes_pvals, method = "BH")
+orig_all2 = cbind(temp, min_pval, global_fdr, global_pval_adj, fishers_pval, global_fdr2, global_pval_adj2, fishers_pval2, global_fdr3, global_pval_adj3, simes_pvals, simes_padj, simes_padj2 ) 
+
+temp = (orig_all )
+temp[is.na(temp)] = 1 
+ 
+min_pval = apply(temp , 1, min )
+global_fdr = p.adjust(min_pval, method = "fdr")
+global_pval_adj = p.adjust(min_pval )
+chi2 = rowSums(log(temp), na.rm=T)*-2 
+df = 2*sapply(1:length(chi2), function(i) sum(!is.na(temp[i,]) ))
+fishers_pval = pchisq(chi2, df, lower.tail = FALSE)
+global_fdr2 = p.adjust(fishers_pval, method = "fdr")
+global_pval_adj2 = p.adjust(fishers_pval )
+fishers_pval2 = pchisq(chi2, 2*length(celltypes), lower.tail = FALSE)
+global_fdr3 = p.adjust(fishers_pval2, method = "fdr")
+global_pval_adj3 = p.adjust(fishers_pval2 )
+tests2 = lapply(1:length(temp[,1]), function(i) rank(temp[i,])* temp[i,]/rank(temp[i,]) ) 
+simes_pvals = sapply(1:length(tests2), function(i) min(tests2[[i]]))
+simes_padj = p.adjust(simes_pvals, method = "bonf")
+simes_padj2 = p.adjust(simes_pvals, method = "BH")
+orig_all = cbind(temp, min_pval, global_fdr, global_pval_adj, fishers_pval, global_fdr2, global_pval_adj2, fishers_pval2, global_fdr3, global_pval_adj3, simes_pvals, simes_padj,simes_padj2 ) 
+ 
+
+
+
+##### Plot 
+par(mfrow=c(4,6))
+par(mar = c(2, 2, 3, 1) + 0.1)
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+    plot( rank( rank((effsize_all[fc,i]))+rank(orig_all[fc,i]))  ,  rank(rank( (effsize_all2[fc,i]))+rank(orig_all2[fc,i])) , xlab="v4", ylab="v5", pch=19, cex=0.1, main=celltypes[i])
+
+}
+
+
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+    plot( rank( rank(-(effsize_all[fc,i]))+rank(orig_all[fc,i]))  ,  
+          rank(rank(- (effsize_all2[fc,i]))+rank(orig_all2[fc,i])) , xlab="v4", ylab="v5", pch=19, cex=0.1, main=celltypes[i])
+
+}
+
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+    plot( rank( rank((effsize_all[fc,i]))+rank(orig_all[fc,36]))  ,  
+          rank(rank( (effsize_all2[fc,i]))+rank(orig_all2[fc,36])) , xlab="v4", ylab="v5", pch=19, cex=0.1, main=celltypes[i])
+
+}
+
+
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+    plot( rank( rank(-(effsize_all[fc,i]))+rank(orig_all[fc,36]))  ,  
+          rank(rank( -(effsize_all2[fc,i]))+rank(orig_all2[fc,36])) , xlab="v4", ylab="v5", pch=19, cex=0.1, main=celltypes[i])
+
+}
+
+corss = 0 
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+    corss = corss + round(cor( rank(effsize_all[fc,i]), rank(effsize_all2[fc,i]), method="s"), 5) 
+    plot( rank(effsize_all[fc,i]), rank(effsize_all2[fc,i]), 
+    xlab="v4", ylab="v5", pch=19, cex=0.1, main=paste0(celltypes[i], corss) ) 
+}
+
+
+for(i in 1:length(celltypes)){ 
+    m = match(rownames( res_all[[i]][[1]]) , rownames(orig_all)); ft = !is.na(m); fc = m[ft]; 
+  
+    plot( (effsize_all[fc,i]), (effsize_all2[fc,i]), 
+    xlab="v4", ylab="v5", pch=19, cex=0.1, main=paste0(celltypes[i]) ) 
+    abline(v=c(-0.1, 0.1), lty=2, col="grey")
+    abline(h=c(-0.1, 0.1), lty=2, col="grey")
+    
+}
