@@ -1,5 +1,7 @@
+### Supplementary: proportion alternate tests 
+
 load("props_tests_cell_l2_final_rev.Rdata")
-# original tests 
+##### original tests 
 test_wilcox  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) 
 test_t  = lapply(1:dim(tempfrac0)[1], function(i) t.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) )
 test_wilcox_prop0  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(prop0.list$TransformedProps[i,phens$sex==2], prop0.list$TransformedProps[i,phens$sex==1]) )
@@ -21,7 +23,7 @@ colnames(all_pvals) =   c("Kruskal-Wallis - props", "Kruskal-Wallis - logit", "K
 all_fdrs_krus = apply( all_pvals, 2, p.adjust)   
 rownames(all_fdrs_krus) = rownames(tempfrac0)   
 
-# Multinom model 
+##### Multinom model 
 prop = props0 
 prop.trans = prop0.list$TransformedProps
 design_F <- model.matrix(~ 0 + sex + age + pc1 + pc2 + pc3 + pc4 )
@@ -34,7 +36,7 @@ m = match(rownames(prop.trans), rownames(tt_F) )
 tt_F = tt_F[m,]
 
 
-# Beta reg model 
+##### Beta reg model 
 library(DCATS) 
 design_F <- model.matrix(~ 0 + sex +age + pc1 + pc2 + pc3 + pc4 + age:pc1:pc2:pc3:pc4 + sex:age:pc1:pc2:pc3:pc4 )
 betabin_F = dcats_GLM(t(prop1.list$Counts), design_F[,-1] )
@@ -57,7 +59,7 @@ estPhi = getPhi(t(prop1.list$Counts), design_B[,-1])
 estPhi_B = dcats_GLM(t(prop1.list$Counts), design_B[,-1], fix_phi = estPhi)
 
 
-
+##### Plots 
 pdf("prop_test_all.pdf", height=8, width=12)
 for(i in 1:24){  
     par(mfrow=c(2,3))
