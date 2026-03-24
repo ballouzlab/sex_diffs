@@ -117,3 +117,105 @@ for( celltype in  names(summary_res) ){
   points( summary_res[[celltype]][,2], pch=19, col=viridis(5)[3])
   abline( h = nnn, lty=2)
 } 
+
+
+
+
+
+colpals2a = colpals2[-29,]
+  flag = "indiv"
+  flag = "avgtest"
+  flag = "cellsdown"
+  flag = "avgcells"
+   flag = "avgcells_log"
+   flag = "cellsdown_log"
+   
+flags = c( "avgtest", "cellsdown_log",   "indiv",  "avgcells_log")
+#flags = c( "indiv", "avgtest", "cellsdown", "cellsdown_log", "avgcells", "avgcells_log")
+par(mfrow=c(2,2)) 
+for(flag in flags){    
+   if(flag == "avgtest"){ 
+     plot(-10,-10, xlab="Genes tested", ylab="DEGs", xlim=c(1000,5000), ylim=c(0,40), bty="na")  
+    } 
+   if(flag == "cellsdown"){ 
+     plot( -10,-10, main=celltype, xlab="Cells", ylab="DEGs", xlim=c(1000,5000), ylim=c(0,40), bty="na")  
+   }
+   
+   if(flag == "cellsdown_log"){ 
+     plot( -10,-10, xlab="Cells (log10)", ylab="DEGs", xlim=c(2,6), ylim=c(0,40), axes=F)
+     axis(1, at=2:6, labels = 10^(2:6))
+     axis(2)
+   }
+   
+   if(flag == "avgcells"){ 
+      plot(-10,-10, xlab="Average number of cells per indiv", ylab="DEGs",xlim=c(0,400), ylim=c(0,40), bty="na") 
+       
+    }
+    if(flag == "avgcells_log"){ 
+      plot( -10,-10, xlab="Average number of cells per indiv (log10)", ylab="DEGs",xlim=c(0,3), ylim=c(0,40), axes=F) 
+     axis(1, at=0:6, labels = 10^(0:6))
+     axis(2)
+      
+    }
+   if(flag == "indiv"){ 
+     plot(-10,-10, xlab="Average number of individuals", ylab="DEGs", xlim=c(200,1000),ylim=c(0,40), bty="na")   
+    } 
+
+     
+
+   
+ for( celltype in  names(summary_res3) ){ 
+
+  nns = as.character(sort(as.numeric(names(downsample_res[[celltype]]))))
+  N =  freq_cells[celltype,2]
+  nnn = summary_res[[celltype]][rownames(summary_res[[celltype]]) == N,2]
+  nin = summary_res[[celltype]][rownames(summary_res[[celltype]]) == N,1] 
+  xa = as.numeric(unlist(lapply(nns, function(ni) rep(ni, length(downsample_res[[celltype]][[ni]][[1]] ) ))))
+  yy = unlist(lapply(nns, function(ni) downsample_res[[celltype]][[ni]][[2]] ) )
+  xx = unlist(lapply(nns, function(ni) downsample_res[[celltype]][[ni]][[1]] ) )
+  colls = unlist(lapply(nns, function(ni) rep(ni, length(downsample_res[[celltype]][[ni]][[1]]))))
+  xxe = c(xx,  nin )
+  xae = c(xa, N )
+  yye = c(yy, nnn)
+  nx = length(levels(as.factor(xae))) + 1  
+  print(celltype)
+  print(nns)
+  
+   zz = unlist(lapply(nns, function(ni) sub_indiv[[celltype]][[ni]][,6] ) )
+   zze = c(zz, summary_res3[[celltype]][rownames(summary_res3[[celltype]]) == N,6] )
+   zzz = unlist(lapply(nns, function(ni) sub_indiv[[celltype]][[ni]][,3] ) )
+   zzze = c(zzz, summary_res3[[celltype]][rownames(summary_res3[[celltype]]) == N,3] )
+   ci = colpals2a[colpals2a[,9] == celltype,10]
+
+   
+   if(flag == "avgtest"){ 
+      lines( summary_res[[celltype]][,1], summary_res[[celltype]][,2], lwd=2, col=ci)
+      points( summary_res[[celltype]][,1], summary_res[[celltype]][,2], pch=19, cex=2, col=ci)
+    } 
+    if(flag == "cellsdown"){ 
+      points( rownames( summary_res[[celltype]]), summary_res[[celltype]][,2],  pch=19, cex=2, col=ci)
+      lines( rownames( summary_res[[celltype]]), summary_res[[celltype]][,2], lwd=2, col=ci)
+    }
+    if(flag == "cellsdown_log"){ 
+      xtemp = log10( as.numeric(rownames( summary_res[[celltype]])) )
+      points( xtemp, summary_res[[celltype]][,2],  pch=19, cex=2, col=ci)
+      lines( xtemp, summary_res[[celltype]][,2], lwd=2, col=ci)
+    }
+   
+   if(flag == "avgcells"){ 
+      points( summary_res3[[celltype]][,6], summary_res[[celltype]][,2], pch=19, cex=2, col=ci)
+      lines( summary_res3[[celltype]][,6], summary_res[[celltype]][,2], lwd=2, col=ci)
+   }
+
+   if(flag == "avgcells_log"){ 
+      points( log10(summary_res3[[celltype]][,6]), summary_res[[celltype]][,2], cex=2, pch=19,col=ci)
+      lines( log10(summary_res3[[celltype]][,6]), summary_res[[celltype]][,2], lwd=2, col=ci)
+   }
+
+      
+   if(flag == "indiv"){ 
+     points( summary_res3[[celltype]][,3], summary_res[[celltype]][,2], pch=19, cex=2, col=ci)
+     lines( summary_res3[[celltype]][,3], summary_res[[celltype]][,2], lwd=2, col=ci)  
+   } 
+ }
+} 
