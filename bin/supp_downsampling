@@ -219,3 +219,267 @@ for(flag in flags){
    } 
  }
 } 
+
+
+
+
+load("degs/seurat_sex_degs.Rdata")
+
+sex_genes_mat_wilcox = sex_genes_mat[,grep("wilcox", colnames(sex_genes_mat)  ) ]
+sex_genes_mat_wilcox_up = sex_genes_mat_wilcox[,grep("up", colnames(sex_genes_mat_wilcox)  ) ]
+sex_genes_mat_wilcox_down = sex_genes_mat_wilcox[,grep("down", colnames(sex_genes_mat_wilcox)  ) ]
+
+colnames(sex_genes_mat_wilcox_down) = gsub("wilcox-down ","", colnames(sex_genes_mat_wilcox_down))
+colnames(sex_genes_mat_wilcox_up) = gsub("wilcox-up ","", colnames(sex_genes_mat_wilcox_up))
+sex_genes_mat_wilcox_joint =  sex_genes_mat_wilcox_up + sex_genes_mat_wilcox_down
+  
+sex_genes_downsample = sex_genes_mat_wilcox_joint * 0 
+all_genes = rownames(sex_genes_downsample) 
+sex_genes_downsample_list = list() 
+
+for(celltype in names(downsample_res)){ 
+  sex_genes_downsample = sex_genes_mat_wilcox_joint * 0 
+
+  nns = names(downsample_res[[celltype]])
+  nns = as.character(sort(as.numeric(nns)))
+  for(ni in nns){ 
+   degs = (downsample_res[[celltype]][[ni]][[4]] ) 
+   m = match(degs[,1], all_genes)
+   fd = !is.na(m)
+   fad = m[fd]
+   sex_genes_downsample[fad,celltype] = degs[fd,2]
+   if( is.null(dim(sex_genes_downsample_list[[ni]])) ) { 
+      sex_genes_downsample_list[[ni]] = sex_genes_downsample
+     } else { 
+        sex_genes_downsample_list[[ni]] = sex_genes_downsample_list[[ni]] + sex_genes_downsample
+     } 
+   } 
+}
+
+ 
+nns = names(sex_genes_downsample_list)
+
+nns = c("1000", "5000", "10000")
+i = 4
+celltype = colnames(sex_genes_mat_wilcox_joint)[i]
+par(mfrow=c(3,3))
+for(ni in nns) {  
+    filtg = names(which(sex_genes_mat_wilcox_joint[rowSums(sex_genes_mat_wilcox_joint) == 1 ,celltype] > 0))
+   filtcols = rep("black", length(all_genes) ) 
+   names(filtcols)  = all_genes
+   filtcols[filtg] = "red"
+   mmax =  max(sex_genes_downsample_list[[ni]][,i])  
+   if(mmax > 0 ){ 
+   ytemp = sex_genes_downsample_list[[ni]][,i]/mmax
+   
+  plot( jitter(sex_genes_mat_wilcox_joint[,i]) , jitter(ytemp), main=paste(celltype, ni), pch=19 , xlab="Original", ylab="Downsamples", col=filtcols)
+   } 
+ } 
+
+sex_genes_downsample_list2 = list() 
+for( celltype in colnames(sex_genes_mat_wilcox_joint) ) { 
+ temp_down = list() 
+  for(ni in nns) {  
+   mmax =  max(sex_genes_downsample_list[[ni]][,celltype])  
+   
+   if(mmax > 0 ){ 
+       ytemp = sex_genes_downsample_list[[ni]][,celltype]/mmax
+       temp_down[[ni]] = ytemp  
+   }
+  }
+   sex_genes_downsample_list2[[celltype]] = cbind(sex_genes_mat_wilcox_joint[,celltype], do.call(cbind, temp_down ))  
+  
+  N = freq_cells[celltype,2]
+   colnames(sex_genes_downsample_list2[[celltype]] )[1] = N 
+ 
+ } 
+
+sex_genes_downsample_list3 = list() 
+for( celltype in colnames(sex_genes_mat_wilcox_joint) ) { 
+   yy = array(sex_genes_downsample_list2[[celltype]] )
+   
+   xx = unlist(lapply( colnames(sex_genes_downsample_list2[[celltype]]), function(i) rep( i,  dim(sex_genes_downsample_list2[[celltype]])[1] ))) 
+   
+   filtg = names(which(sex_genes_mat_wilcox_joint[rowSums(sex_genes_mat_wilcox_joint) == 1 ,celltype] > 0))
+   filtcols = rep("black", length(all_genes) ) 
+   names(filtcols)  = all_genes
+   filtcols[filtg] = "red"
+   cc = rep( filtcols, dim(sex_genes_downsample_list2[[celltype]] )[2] ) 
+   cx = rep(0.5, length(cc))
+   cx[cc=="red"] = 2 
+   plot( yy ~ jitter(as.numeric(xx)), col=cc, pch=19, cex=cx, main=celltype, xlab="Cells", ylab="Fraction appears") 
+   #beeswarm( yy ~ (as.numeric(xx)), pwcol=cc, pch=19,  main=celltype, xlab="Cells", ylab="Fraction appears") 
+
+   sex_genes_downsample_list3[[celltype]] =  sex_genes_downsample_list2[[celltype]][filtg,] 
+   
+}
+
+
+sex_genes_mat_wilcox_uniques = sex_genes_mat_wilcox_joint 
+sex_genes_mat_wilcox_uniques[rowSums(sex_genes_mat_wilcox_joint) > 1 ,] = 0 
+nunique = colSums(sex_genes_mat_wilcox_uniques)
+unique_mat = matrix(NA, nrow=length(sex_genes_downsample_list3), ncol=length(nns)+1 ) 
+colnames(unique_mat) = c("orig", nns)
+rownames(unique_mat) = names(sex_genes_downsample_list3) 
+unique_mat10 = unique_mat
+unique_mat50 = unique_mat
+unique_mat80 = unique_mat
+
+for( celltype in rownames(unique_mat) ) { 
+  
+   if( !is.null(dim(sex_genes_downsample_list3[[celltype]]))) { 
+     if( dim(sex_genes_downsample_list3[[celltype]])[1] >0 ) { 
+ 
+     rcc = colnames(sex_genes_downsample_list3[[celltype]])[-1]
+     m = match(rcc, colnames(unique_mat ) ) 
+      
+      unique_mat[celltype,c(1,m)]   =  colSums(sex_genes_downsample_list3[[celltype]] > 0)
+      unique_mat10[celltype,c(1,m)] =  colSums(sex_genes_downsample_list3[[celltype]] > 0.1)
+      unique_mat50[celltype,c(1,m)] =  colSums(sex_genes_downsample_list3[[celltype]] > 0.5)
+      unique_mat80[celltype,c(1,m)] =  colSums(sex_genes_downsample_list3[[celltype]] > 0.8)
+      
+    } 
+   }
+}
+
+
+par(mfrow=c(3,4))
+ for( celltype in rownames(unique_mat)  ){ 
+  
+      ci = colpals2a[colpals2a[,9] == celltype,10]
+    if (!is.na(unique_mat[celltype,1])) { 
+       plot(-10,-10, xlim=c(2,5), ylim=c(0,1), main=celltype, xlab="Cells (log10)", axes=F, ylab="Fraction appearing")
+      axis(2)
+      axis(1, at=2:5, labels = 10^(2:5))
+      
+        ntt = unique_mat[celltype,1]
+        ytt = unique_mat[celltype,-1]/ntt
+        ftt = !is.na(ytt) 
+        ytt10 = unique_mat10[celltype,-1]/ntt
+        ytt50 = unique_mat50[celltype,-1]/ntt
+        ytt80 = unique_mat80[celltype,-1]/ntt
+        
+        xtt = log10(as.numeric(colnames(unique_mat[,-1])) )
+        points( xtt[ftt], ytt[ftt] ,   pch=19, col = ci )
+        points( xtt[ftt], ytt10[ftt] , pch=18, col = ci )
+        points( xtt[ftt], ytt50[ftt] , pch=17, col = ci )
+        points( xtt[ftt], ytt80[ftt] , pch=16, col = ci )
+        lines( xtt[ftt], ytt[ftt] , pch=19, col = ci , lwd = 2 )
+        lines( xtt[ftt], ytt10[ftt] , pch=19, col = ci , lty = 4 )
+        lines( xtt[ftt], ytt50[ftt] , pch=19, col = ci , lty = 2 )
+        lines( xtt[ftt], ytt80[ftt] , pch=19, col = ci , lwd=3)
+      } 
+ } 
+plot(-10,-10, axes=F, ylab="", xlab="", bty="na", xlim=c(0,1), ylim=c(0,1))
+legend("right", cex=2, pch=c(19,18,17,16), lwd=c(2,1,1,3), lty=c(1,4,2,1), leg=c("1%", "10%", "50%", "80%"))
+
+ 
+
+sex_genes_downsample_list4 = list() 
+for( celltype in colnames(sex_genes_mat_wilcox_joint) ) { 
+ 
+   filtg =  names(which(sex_genes_mat_wilcox_joint[,celltype] > 0)) 
+   
+   sex_genes_downsample_list4[[celltype]] =  sex_genes_downsample_list2[[celltype]][filtg,] 
+   
+}
+
+
+sex_genes_mat_wilcox_uniques = sex_genes_mat_wilcox_joint 
+downs_mat = matrix(NA, nrow=length(sex_genes_downsample_list4), ncol=length(nns)+1 ) 
+colnames(downs_mat) = c("orig", nns)
+rownames(downs_mat) = names(sex_genes_downsample_list4) 
+downs_mat10 = downs_mat
+downs_mat50 = downs_mat
+downs_mat80 = downs_mat
+
+for( celltype in rownames(downs_mat) ) { 
+  
+   if( !is.null(dim(sex_genes_downsample_list4[[celltype]]))) { 
+     if( dim(sex_genes_downsample_list4[[celltype]])[1] >0 ) { 
+ 
+     rcc = colnames(sex_genes_downsample_list4[[celltype]])[-1]
+     m = match(rcc, colnames(downs_mat ) ) 
+      
+      downs_mat[celltype,c(1,m)]   =  colSums(sex_genes_downsample_list4[[celltype]] > 0)
+      downs_mat10[celltype,c(1,m)] =  colSums(sex_genes_downsample_list4[[celltype]] > 0.1)
+      downs_mat50[celltype,c(1,m)] =  colSums(sex_genes_downsample_list4[[celltype]] > 0.5)
+      downs_mat80[celltype,c(1,m)] =  colSums(sex_genes_downsample_list4[[celltype]] > 0.8)
+      
+    } 
+   }
+}
+ write.csv( rbind(downs_mat, downs_mat10, downs_mat50, downs_mat80), file="downsampling")
+ 
+  write.csv( rbind(unique_mat, unique_mat10, unique_mat50, unique_mat80), file="downsampling_uniq")
+
+par(mfrow=c(3,4))
+ for( celltype in rownames(downs_mat)  ){ 
+  
+      ci = colpals2a[colpals2a[,9] == celltype,10]
+    if (!is.na(downs_mat[celltype,1])) { 
+       plot(-10,-10, xlim=c(2,5), ylim=c(0,1), main=celltype, xlab="Cells (log10)", axes=F, ylab="Fraction appearing")
+      axis(2)
+      axis(1, at=2:5, labels = 10^(2:5))
+      
+        ntt = downs_mat[celltype,1]
+        ytt = downs_mat[celltype,-1]/ntt
+        ftt = !is.na(ytt) 
+        ytt10 = downs_mat10[celltype,-1]/ntt
+        ytt50 = downs_mat50[celltype,-1]/ntt
+        ytt80 = downs_mat80[celltype,-1]/ntt
+        
+        xtt = log10(as.numeric(colnames(downs_mat[,-1])) )
+        points( xtt[ftt], ytt[ftt] ,   pch=19, col = ci )
+        points( xtt[ftt], ytt10[ftt] , pch=18, col = ci )
+        points( xtt[ftt], ytt50[ftt] , pch=17, col = ci )
+        points( xtt[ftt], ytt80[ftt] , pch=16, col = ci )
+        lines( xtt[ftt], ytt[ftt] , pch=19, col = ci , lwd = 2 )
+        lines( xtt[ftt], ytt10[ftt] , pch=19, col = ci , lty = 4 )
+        lines( xtt[ftt], ytt50[ftt] , pch=19, col = ci , lty = 2 )
+        lines( xtt[ftt], ytt80[ftt] , pch=19, col = ci , lwd=3)
+      } 
+ } 
+plot(-10,-10, axes=F, ylab="", xlab="", bty="na", xlim=c(0,1), ylim=c(0,1))
+legend("right", cex=2, pch=c(19,18,17,16), lwd=c(2,1,1,3), lty=c(1,4,2,1), leg=c("1%", "10%", "50%", "80%"))
+
+
+  plot(-10,-10, xlim=c(2,5), ylim=c(0,1), main="1%", xlab="Cells (log10)", axes=F, ylab="Fraction appearing")
+    plot(-10,-10, xlim=c(2,5), ylim=c(0,1), main="10%", xlab="Cells (log10)", axes=F, ylab="Fraction appearing")
+       plot(-10,-10, xlim=c(2,5), ylim=c(0,1), main="50%", xlab="Cells (log10)", axes=F, ylab="Fraction appearing")
+     
+      axis(2)
+      axis(1, at=2:5, labels = 10^(2:5))
+ 
+ for( celltype in rownames(downs_mat)  ){ 
+  
+      ci = colpals2a[colpals2a[,9] == celltype,10]
+    if (!is.na(downs_mat[celltype,1])) { 
+
+      
+        ntt = downs_mat[celltype,1]
+        ytt = downs_mat[celltype,-1]/ntt
+        ftt = !is.na(ytt) 
+        ytt10 = downs_mat10[celltype,-1]/ntt
+        ytt50 = downs_mat50[celltype,-1]/ntt
+        ytt80 = downs_mat80[celltype,-1]/ntt
+        
+        xtt = log10(as.numeric(colnames(downs_mat[,-1])) )
+         points( xtt[ftt], ytt[ftt] ,   pch=19, col = ci )
+        # points( xtt[ftt], ytt10[ftt] , pch=18, col = ci )
+        # points( xtt[ftt], ytt50[ftt] , pch=17, col = ci )
+        # points( xtt[ftt], ytt80[ftt] , pch=16, col = ci )
+         lines( xtt[ftt], ytt[ftt] , pch=19, col = ci , lwd = 2 )
+        # lines( xtt[ftt], ytt10[ftt] , pch=19, col = ci , lty = 4 )
+        # lines( xtt[ftt], ytt50[ftt] , pch=19, col = ci , lty = 2 )
+        # lines( xtt[ftt], ytt80[ftt] , pch=19, col = ci , lwd=3)
+        
+        
+    } 
+ }   
+  
+      
+          
+plot(-10,-10, axes=F, ylab="", xlab="", bty="na", xlim=c(0,1), ylim=c(0,1))
+legend("right", cex=2, pch=c(19,18,17,16), lwd=c(2,1,1,3), lty=c(1,4,2,1), leg=c("1%", "10%", "50%", "80%"))
+
