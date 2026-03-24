@@ -1,9 +1,9 @@
-# Figure Supp: Co-expression by cell-type and sex.
+# Figure Supps:  
 
-# Panel A - illustration of methods 
 
-# Panel B
 
+### Co-expression by cell-type and sex.
+#### Panel B: 
 #### GO slim performances for aggregates ("joint") 
 load("aurocs_go_agg_cpm.Rdata")
 aurocs_agg_mat0 = aurocs_agg_mat [, grep("l1", colnames(aurocs_agg_mat), inver=T) ]
