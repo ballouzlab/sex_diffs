@@ -1,0 +1,119 @@
+### Supplmentary: downsampling differential expression analysis
+
+metadata  <- readRDS("metadata_final.Rds")
+downsample_res = list() 
+files = dir("data/celltypes/") 
+freq_cells = plyr::count( metadata$predicted.celltype.l3 ) 
+freq_cells = freq_cells[-c(17,29),]
+rownames(freq_cells) = freq_cells[,1]
+ 
+files1 = grep("NK_CD5", files, value=T)
+files2 = grep("NK_CD5", files, invert=T, value=T)
+
+for(file in files2 ) { 
+  load(paste0("data/celltypes/",file)) 
+  temp = unlist( strsplit(file, "_")) 
+  
+  celltype = temp[1] 
+  ni = temp[2] 
+ 
+  ri = length(test_list)
+  res = list() 
+  for(i in 1:ri){ 
+    test_i = test_list[[i]] 
+    res[[i]] = rownames(test_i[which(abs(test_i$avg_log2FC) > 0.1 & test_i$p_val_adj < 0.05),])
+  }
+  freq = plyr::count(unlist(res) ) 
+  nt = sapply(1:ri, function(i) dim(test_list[[i]])[1]) 
+  nr = sapply(1:ri, function(i) length(res[[i]])) 
+  #plot(nt,nr, pch=19)
+  nn = sum(freq[,2] == ri)
+  
+  downsample_res[[celltype]][[ni]] = list(nt, nr, nn, freq) 
+   
+}
+ 
+for(file in files1 ) { 
+  load(paste0("data/celltypes/",file))
+   
+  file = gsub("NK_CD","NK-CD", file) 
+  
+  temp = unlist( strsplit(file, "_")) 
+  
+  celltype = temp[1] 
+  celltype = gsub("NK-CD","NK_CD", celltype) 
+  ni = temp[2] 
+ 
+  ri = length(test_list)
+  res = list() 
+  for(i in 1:ri){ 
+    test_i = test_list[[i]] 
+    res[[i]] = rownames(test_i[which(abs(test_i$avg_log2FC) > 0.1 & test_i$p_val_adj < 0.05),])
+  }
+  freq = plyr::count(unlist(res) ) 
+  nt = sapply(1:ri, function(i) dim(test_list[[i]])[1]) 
+  nr = sapply(1:ri, function(i) length(res[[i]])) 
+  #plot(nt,nr, pch=19)
+  nn = sum(freq[,2] == ri)
+  
+  downsample_res[[celltype]][[ni]] = list(nt, nr, nn, freq) 
+   
+}
+
+
+temp_res = list()
+summary_res = list() 
+for(celltype in names(downsample_res)) {
+  nns = names(downsample_res[[celltype]])
+  nns = sort(as.numeric(nns))
+  load(paste0("degs/orig/mast_DE_", celltype,".Rdata"))
+  degs_f =  rownames(test[(abs(test$avg_log2FC) > 0.1 & test$p_val_adj < 0.05)  ,])
+  nnn =  sum(abs(test$avg_log2FC) > 0.1 & test$p_val_adj < 0.05)   
+  N = freq_cells[celltype,2]
+  
+  for(ni in nns){ 
+    ni = as.character(ni)
+    f1 = downsample_res[[celltype]][[ni]][[4]][,2] > 10
+
+    temp_res[[celltype]][[ni]] = c(mean(downsample_res[[celltype]][[ni]][[1]]),
+                                   mean(downsample_res[[celltype]][[ni]][[2]]),  
+                                   downsample_res[[celltype]][[ni]][[3]],
+                                   length(intersect(degs_f, downsample_res[[celltype]][[ni]][[4]][f1,1])))
+    }
+    
+    summary_res[[celltype]] = do.call(rbind, temp_res[[celltype]])
+    summary_res[[celltype]] = rbind(summary_res[[celltype]], c(dim(test)[1],nnn,nnn,nnn))
+    rownames(summary_res[[celltype]]) = c(nns,N)
+    
+}
+
+
+  #plot( summary_res[[celltype]][,2] ~ rownames(summary_res[[celltype]]) , main=celltype)
+  #plot( rownames(summary_res[[celltype]]), summary_res[[celltype]][,3] ,   pch=19, main=celltype)
+ 
+par(mfrow=c(3,3)) 
+for( celltype in  names(summary_res) ){ 
+
+  nns = as.character(sort(as.numeric(names(downsample_res[[celltype]]))))
+  N =  freq_cells[celltype,2]
+  nnn = summary_res[[celltype]][rownames(summary_res[[celltype]]) == N,2]
+  nin = summary_res[[celltype]][rownames(summary_res[[celltype]]) == N,1] 
+  xa = as.numeric(unlist(lapply(nns, function(ni) rep(ni, length(downsample_res[[celltype]][[ni]][[1]] ) ))))
+  yy = unlist(lapply(nns, function(ni) downsample_res[[celltype]][[ni]][[2]] ) )
+  xx = unlist(lapply(nns, function(ni) downsample_res[[celltype]][[ni]][[1]] ) )
+  colls = unlist(lapply(nns, function(ni) rep(ni, length(downsample_res[[celltype]][[ni]][[1]]))))
+  xxe = c(xx,  nin )
+  xae = c(xa, N )
+  yye = c(yy, nnn)
+  nx = length(levels(as.factor(xae)))  
+  print(celltype)
+  print(nns)
+ 
+  plot(xxe, yye, col= magma(nx)[as.factor(xae)], pch=19, main=celltype, xlab="Genes tested", ylab="DEGs")  
+  plot(xae, yye, col= magma(nx)[as.factor(xae)], pch=19, main=celltype, xlab="Cells", ylab="DEGs")  
+  bp = boxplot( yy~ xa, main=celltype, xlab="Cells", ylab="DEGs", col=magma(nx)) 
+  points( summary_res[[celltype]][,3], pch=19, col=viridis(5)[1])
+  points( summary_res[[celltype]][,4], pch=19, col=viridis(5)[2])
+  points( summary_res[[celltype]][,2], pch=19, col=viridis(5)[3])
+  abline( h = nnn, lty=2)
+} 
