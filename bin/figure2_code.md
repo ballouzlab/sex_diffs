@@ -181,4 +181,63 @@ save(tempfrac0,freq_sexp0, props0, tempfrac0lf, tempfrac0lm, phens,  tempfrac0lf
 ```
 
 
- 
+
+
+
+#### original tests 
+test_wilcox  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) 
+test_t  = lapply(1:dim(tempfrac0)[1], function(i) t.test(tempfrac0[i,phens$sex==2], tempfrac0[i,phens$sex==1]) )
+test_wilcox_prop0  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(prop0.list$TransformedProps[i,phens$sex==2], prop0.list$TransformedProps[i,phens$sex==1]) )
+test_t_prop0  = lapply(1:dim(prop0.list$TransformedProps)[1], function(i) t.test(prop0.list$TransformedProps[i,phens$sex==2], prop0.list$TransformedProps[i,phens$sex==1]) )
+test_wilcox_prop1  = lapply(1:dim(tempfrac0)[1], function(i) wilcox.test(prop1.list$TransformedProps[i,phens$sex==2], prop1.list$TransformedProps[i,phens$sex==1]) )
+test_t_prop1  = lapply(1:dim(prop1.list$TransformedProps)[1], function(i) t.test(prop1.list$TransformedProps[i,phens$sex==2], prop1.list$TransformedProps[i,phens$sex==1]) )
+all_pvals =   t(  sapply(1:length(test_wilcox), function(i) c(test_wilcox[[i]]$p.value,test_wilcox_prop0[[i]]$p.value, test_wilcox_prop1[[i]]$p.value,
+test_t[[i]]$p.value,test_t_prop0[[i]]$p.value, test_t_prop1[[i]]$p.value) ) ) 
+rownames(all_pvals) =   rownames(tempfrac0)
+colnames(all_pvals) =   c("wilcox - props", "wilcox - logit", "wicox - arcsin", "ttest - props", "ttest - logit", "ttest - arcsin")
+
+all_fdrs = apply( all_pvals, 2, p.adjust, "fdr")
+all_padj = apply( all_pvals, 2, p.adjust)
+test_krus_prop1  = lapply(1:dim(prop1.list$TransformedProps)[1], function(i) kruskal.test(prop1.list$TransformedProps[i,] ~ phens$sex ))
+test_krus_prop0  = lapply(1:dim(prop0.list$TransformedProps)[1], function(i) kruskal.test(prop0.list$TransformedProps[i,] ~ phens$sex ))
+test_krus  = lapply(1:dim(tempfrac0)[1], function(i) kruskal.test(tempfrac0[i,]~ phens$sex) )
+all_pvals =   t(  sapply(1:length(test_krus), function(i) c(test_krus[[i]]$p.value,test_krus_prop0[[i]]$p.value, test_krus_prop1[[i]]$p.value) ) ) 
+colnames(all_pvals) =   c("Kruskal-Wallis - props", "Kruskal-Wallis - logit", "Kruskal-Wallis - arcsin")
+all_fdrs_krus = apply( all_pvals, 2, p.adjust)   
+rownames(all_fdrs_krus) = rownames(tempfrac0)   
+
+#### Multinom model 
+prop = props0 
+prop.trans = prop0.list$TransformedProps
+design_F <- model.matrix(~ 0 + sex + age + pc1 + pc2 + pc3 + pc4 )
+fit_F <- lmFit(prop.trans, design_F)
+cont.matrix_F <- makeContrasts(femaleVSmale = sex1 - sex2, levels = design_F)
+fit_F <- contrasts.fit(fit_F, cont.matrix_F)
+fit_F <- eBayes(fit_F, robust=T, trend=F)
+tt_F <- topTable(fit_F, number = 24)
+m = match(rownames(prop.trans), rownames(tt_F) )
+tt_F = tt_F[m,]
+
+
+#### Beta reg model 
+library(DCATS) 
+design_F <- model.matrix(~ 0 + sex +age + pc1 + pc2 + pc3 + pc4 + age:pc1:pc2:pc3:pc4 + sex:age:pc1:pc2:pc3:pc4 )
+betabin_F = dcats_GLM(t(prop1.list$Counts), design_F[,-1] )
+estPhi = getPhi(t(prop1.list$Counts), design_F[,-1] )
+estPhi_F = dcats_GLM(t(prop1.list$Counts), design_F[,-1] , fix_phi = estPhi)
+
+design_G <- model.matrix(~ 0 + sex +age + pc1 + pc2 + pc3 + pc4 )
+betabin_G = dcats_GLM(t(prop1.list$Counts), design_G[,-1])
+estPhi = getPhi(t(prop1.list$Counts), design_G[,-1])
+estPhi_G = dcats_GLM(t(prop1.list$Counts), design_G[,-1], fix_phi = estPhi)
+
+design_D <- model.matrix(~ 0 + sex +age + sex:age)
+betabin_D = dcats_GLM(t(prop1.list$Counts), design_D[,-1])
+estPhi = getPhi(t(prop1.list$Counts), design_D[,-1])
+estPhi_D = dcats_GLM(t(prop1.list$Counts), design_D[,-1], fix_phi = estPhi)
+
+design_B <- model.matrix(~ 0 + sex)
+betabin_B = dcats_GLM(t(prop1.list$Counts), design_B[,-1])
+estPhi = getPhi(t(prop1.list$Counts), design_B[,-1])
+estPhi_B = dcats_GLM(t(prop1.list$Counts), design_B[,-1], fix_phi = estPhi)
+
