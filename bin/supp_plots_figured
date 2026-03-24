@@ -205,3 +205,81 @@ a4 = array(perc_nd )
 vioplot(a4[filts] ~ dc[filts] + cc[filts] , xlab=""   , ylab="Fraction genes changed" , names=c("Cross sex and cell-type", "Cross cell-type", "Cross sex", "Same"), col=leg[,1])  
 
 
+
+
+
+
+#### Plots for supp - count proportions 
+pdf("prop_test_all.pdf", height=8, width=12)
+for(i in 1:24){  
+    par(mfrow=c(2,3))
+    plot( prop0.list$Proportions[i,] ~  pc1, col=colsex[sex], pch=19, ylab="Proportions")
+    abline(lm(prop0.list$Proportions[i,sex==2]  ~  pc1[sex==2]), col=colsex[2])
+    abline(lm(prop0.list$Proportions[i,sex==1]  ~  pc1[sex==1]), col=colsex[1])
+    p2 = cor.test(prop0.list$Proportions[i,sex==2], pc1[sex==2], m="s")
+    p1 = cor.test(prop0.list$Proportions[i,sex==1], pc1[sex==1], m="s")
+    legend("topleft", legend=
+               c(paste("Male:",  "r=", round(p1$estimate,2), "p=", sprintf("%.2e", p1$p.value) ),
+                 paste("Female:", "r=", round(p2$estimate,2), "p=", sprintf("%.2e", p2$p.value) )), col=colsex, pch=19) 
+    
+    
+    plot( prop0.list$Proportions[i,] ~  pc2, col=colsex[sex], pch=19, ylab="Proportions")
+    abline(lm(prop0.list$Proportions[i,sex==2]  ~  pc2[sex==2]), col=colsex[2])
+    abline(lm(prop0.list$Proportions[i,sex==1]  ~  pc2[sex==1]), col=colsex[1])
+    p2 = cor.test(prop0.list$Proportions[i,sex==2], pc2[sex==2], m="s")
+    p1 = cor.test(prop0.list$Proportions[i,sex==1], pc2[sex==1], m="s")
+    legend("topleft", legend=
+               c(paste("Male:",  "r=", round(p1$estimate,2), "p=", sprintf("%.2e", p1$p.value) ),
+                 paste("Female:", "r=", round(p2$estimate,2), "p=", sprintf("%.2e", p2$p.value) )), col=colsex, pch=19) 
+
+    
+    plot( prop0.list$Proportions[i,] ~  pc3, col=colsex[sex], pch=19, ylab="Proportions")
+    abline(lm(prop0.list$Proportions[i,sex==2]  ~  pc3[sex==2]), col=colsex[2])
+    abline(lm(prop0.list$Proportions[i,sex==1]  ~  pc3[sex==1]), col=colsex[1])
+    p2 = cor.test(prop0.list$Proportions[i,sex==2], pc3[sex==2], m="s")
+    p1 = cor.test(prop0.list$Proportions[i,sex==1], pc3[sex==1], m="s")
+    legend("topleft", legend=
+               c(paste("Male:",  "r=", round(p1$estimate,2), "p=", sprintf("%.2e", p1$p.value) ),
+                 paste("Female:", "r=", round(p2$estimate,2), "p=", sprintf("%.2e", p2$p.value) )), col=colsex, pch=19) 
+    
+    
+    
+    plot( prop0.list$Proportions[i,] ~  pc4, col=colsex[sex], pch=19, ylab="Proportions")
+    abline(lm(prop0.list$Proportions[i,sex==2]  ~  pc4[sex==2]), col=colsex[2])
+    abline(lm(prop0.list$Proportions[i,sex==1]  ~  pc4[sex==1]), col=colsex[1])
+    p2 = cor.test(prop0.list$Proportions[i,sex==2], pc4[sex==2], m="s")
+    p1 = cor.test(prop0.list$Proportions[i,sex==1], pc4[sex==1], m="s")
+    legend("topleft", legend=
+               c(paste("Male:",  "r=", round(p1$estimate,2), "p=", sprintf("%.2e", p1$p.value) ),
+                 paste("Female:", "r=", round(p2$estimate,2), "p=", sprintf("%.2e", p2$p.value) )), col=colsex, pch=19) 
+    
+    
+    
+    plot( prop0.list$Proportions[i,] ~  age, col=colsex[sex], pch=19, ylab="Proportions")
+    abline(lm(prop0.list$Proportions[i,sex==2]  ~  age[sex==2]), col=colsex[2])
+    abline(lm(prop0.list$Proportions[i,sex==1]  ~  age[sex==1]), col=colsex[1])
+    p2 = cor.test(prop0.list$Proportions[i,sex==2], age[sex==2], m="s")
+    p1 = cor.test(prop0.list$Proportions[i,sex==1], age[sex==1], m="s")
+    legend("topleft", legend=
+               c(paste("Male:",  "r=", round(p1$estimate,2), "p=", sprintf("%.2e", p1$p.value) ),
+                 paste("Female:", "r=", round(p2$estimate,2), "p=", sprintf("%.2e", p2$p.value) )), col=colsex, pch=19) 
+    
+    
+    
+    plot( prop0.list$Proportions[i,] ~  sex, col=colsex, pch=19,  ylab="Proportions")
+    
+    legend("topleft", legend=
+               c(paste("F-test:",   "FDR=", sprintf("%.2e", props0[i,8])),
+                 paste("KW-test:",  "FDR=", sprintf("%.2e", all_fdrs_krus[i,1])),
+                 paste("Betareg:",  "FDR=", sprintf("%.2e", betabin_B$fdr[i,1])),
+                 paste("Multinom:",   "FDR=", sprintf("%.2e", p.adjust(tt_F$P.Value, m="fdr")[i]))), pch=" ") 
+    
+    par(mfrow=c(1,1))
+    title(rownames(prop0.list$Proportions)[i])
+    
+} 
+dev.off() 
+
+
+
+
