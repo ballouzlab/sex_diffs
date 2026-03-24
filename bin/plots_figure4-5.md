@@ -1,4 +1,4 @@
-# Figure 4: Sex-linked cis-eQTLs and sex-interacting eQTLs
+# Figure 4,5: Sex-linked cis-eQTLs and sex-interacting eQTLs
 
 ### Panel B - total counts of eqtls across male, female and joint 
 ```{r}
