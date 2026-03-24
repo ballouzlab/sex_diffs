@@ -7,4 +7,4 @@
 - figure3_code contains DE scripts
   
 ### eQTL analysis 
-- code is located in this github:  [https://github.com/s-yazar/onek1k-sex_differences]
+- code is located in this github:  https://github.com/s-yazar/onek1k-sex_differences
