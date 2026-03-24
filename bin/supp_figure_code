@@ -1,12 +1,25 @@
-# Figure Supps 
+# Supplementary code
 
-
-
-
-
-
-
-
+#### Age 
+ff = phens$sex==2
+fm = phens$sex==1
+phens$age =  as.numeric(phens$age)
+nC = c(5,6)
+n = dim(tempfrac0)[1] 
+cors = sapply(1:n, function(i) cor.test( phens$age, tempfrac0[i,]  , m= "s")  ) 
+cors_e = unlist(cors[4,])
+pvals = unlist(cors[3,] ) 
+cors_all = cbind(rownames(tempfrac0) , pvals, p.adjust(pvals), cors_e)
+collabels = cbind(rownames(tempfrac0) , colpals2a[,10]) 
+corsf = sapply(1:n, function(i) cor.test( phens$age[ff], tempfrac0[i,ff]  , m= "s")  ) 
+corsf_e = unlist(corsf[4,])
+pvalsf = unlist(corsf[3,] ) 
+corsm = sapply(1:n, function(i) cor.test( phens$age[fm], tempfrac0[i,fm]  , m= "s")  ) 
+corsm_e = unlist(corsm[4,])
+pvalsm = unlist(corsm[3,] ) 
+cors_all = cbind( cors_all, pvalsf, p.adjust(pvalsf), corsf_e, pvalsm, p.adjust(pvalsm), corsm_e)
+rownames(cors_all) = rownames(tempfrac0)  
+save(cors_all, file="cors_counts_age.Rdata") 
 
 #### Co-expression by cell-type and sex.
 cols <- colorRampPalette(brewer.pal(11, "PRGn"))(100)
