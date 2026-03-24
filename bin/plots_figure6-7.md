@@ -1,4 +1,4 @@
-# Fig. 5: Sex chromosome eQTL analysis. 
+# Figure 6,7: Sex chromosome eQTL analysis. 
 
 ### Panel A - illustrations, using ideograms and karyotype 
 ```{r}
