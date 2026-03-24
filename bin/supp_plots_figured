@@ -1,4 +1,20 @@
 # Figure Supps:  
+
+##### PCs (from genotypes)
+load("pcs.Rdata")
+m = match(phens[,1], pcs[, 1]  ) 
+pcs = pcs[m,]
+age = (phens$age)
+sex = factor(phens$sex)
+pc1 = pcs$pc1
+pc2 = pcs$pc2
+pc3 = pcs$pc3
+pc4 = pcs$pc4
+clusters = metadata$predicted.celltype.l3[filt]
+samples = metadata$individual[filt]
+
+
+
 ### Cell-type proportions and age changes.
 load(file="cors_counts_age.Rdata") 
 temp = apply(cors_all[,c(4,7,10)],2, as.numeric ) 
@@ -14,6 +30,72 @@ pdf("correlations_age_l2_merged_skip.pdf")
 beeswarm(a~b, pch=19, pwcol=d , ylab="Correlations (rho)", xlab="", bty="n",pwcex=bb) 
 dev.off()
 
+### Tests of normality of proportions for each cell-type. 
+load("phen_final.Rdata")
+skip = c("Doublet",  "HSPC", "Platelet", "Eryth")
+filt = is.na(match( metadata$predicted.celltype.l3 , skip)  ) & !is.na(metadata$predicted.celltype.l3)  
+freq1 = plyr::count( cbind( metadata$individual ,as.character(metadata$predicted.celltype.l3))[filt,] ) 
+freq_sexp0 = spread(freq1, key = "x.2", value = "freq")
+tenmp = t(freq_sexp0[ ,-1])
+tenmp[is.na(tenmp)] = 0
+tenmp = as.matrix(tenmp)
+tempfrac0 = (sapply(1:dim(tenmp)[2], function(i) tenmp[,i]/sum(tenmp[,i], na.rm=T) ) )
+colnames(tempfrac0) = freq_sexp0[,1]
+m = match(colnames(tempfrac0), phens[,1] )
+phens = phens[m,]
+props0 =  propeller(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], group=metadata$sex[filt])
+m = match( rownames(tempfrac0),props0[,1]  )
+props0 = props0[m,]
+tempfrac0lf = tempfrac0[,phens$sex==2]
+tempfrac0lm = tempfrac0[,phens$sex==1] 
+bw=0.05
+tempfrac0lf.d = lapply(1:dim(tempfrac0)[1], function(i) density(tempfrac0[i,phens$sex==2], bw=bw, from=0, to=1) )
+tempfrac0lm.d = lapply(1:dim(tempfrac0)[1], function(i) density(tempfrac0[i,phens$sex==1], bw=bw, from=0, to=1) )
+tempfrac0l.d  = lapply(1:dim(tempfrac0)[1], function(i) density(tempfrac0[i,], bw=bw, from=0, to=1) )
+tempfrac0l.d2  = lapply(1:length(tempfrac0l.d),  function(i) cbind( c(0,tempfrac0l.d[[i]]$x,1),  c(0,tempfrac0l.d[[i]]$y,0) ) )
+tempfrac0lf.d2 = lapply(1:length(tempfrac0lf.d), function(i) cbind( c(0,tempfrac0lf.d[[i]]$x,1), c(0,tempfrac0lf.d[[i]]$y,0) ) )
+tempfrac0lm.d2 = lapply(1:length(tempfrac0lm.d), function(i) cbind( c(0,tempfrac0lm.d[[i]]$x,1), c(0,tempfrac0lm.d[[i]]$y,0) ) )
+props1 =  propeller(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], group=metadata$sex[filt], transform = "asin")
+m = match( rownames(tempfrac0),props1[,1]  )
+props1 = props1[m,]
+prop0.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], transform="logit")
+prop1.list <- getTransformedProps(clusters=metadata$predicted.celltype.l3[filt], sample=metadata$individual[filt], transform="asin")
+save(tempfrac0,freq_sexp0, props0, tempfrac0lf, tempfrac0lm, phens,  tempfrac0lf.d, tempfrac0lf.d2,  tempfrac0lm.d, tempfrac0lm.d2, tempfrac0l.d, tempfrac0l.d2, prop0.list, prop1.list, file="props_tests_cell_l2_final_rev.Rdata")
+##### QQ plots
+pdf("qq_plots.pdf", width=12, height=5)
+for(i in 1:24){ 
+  t1 = shapiro_test(prop0.list$TransformedProps[i,]) 
+  t2 = shapiro_test(prop1.list$TransformedProps[i,]) 
+  p1 = ggqqplot(prop0.list$TransformedProps[i,], main=paste("logit, p=",signif(t1$p.value, digits = 3)) )
+  p2 = ggqqplot(prop1.list$TransformedProps[i,], main=paste("arcsin, p=", signif(t2$p.value, digits = 3)))
+  p3 = ggqqplot(prop0.list$Proportions[i,], main=rownames(prop0.list$Counts)[i] ) 
+  p4 =  p3 + p1 + p2 + plot_layout(nrow=1)
+  print(p4)
+} 
+dev.off()
+
+##### Density plots
+pdf("den_plots.pdf", width=12, height=5)
+for(i in 1:24){ 
+  t1 = shapiro_test(prop0.list$TransformedProps[i,]) 
+  t2 = shapiro_test(prop1.list$TransformedProps[i,]) 
+  p1 = ggdensity(prop0.list$TransformedProps[i,], main=paste("logit, p=",signif(t1$p.value, digits = 3)) )
+  p2 = ggdensity(prop1.list$TransformedProps[i,], main=paste("arcsin, p=", signif(t2$p.value, digits = 3)))
+  p3 = ggdensity(prop0.list$Proportions[i,], main=rownames(prop0.list$Counts)[i] ) 
+  p4 =  p3 + p1 + p2 + plot_layout(nrow=1)
+  print(p4)
+} 
+dev.off()
+##### Density plots
+pdf("den_plots_original.pdf")
+for(i in 1:24){ 
+  ymax = max( c(tempfrac0l.d[[i]]$y, tempfrac0lm.d[[i]]$y, tempfrac0lf.d[[i]]$y) )
+  plot(tempfrac0l.d[[i]], main=rownames(prop0.list$Counts)[i],ylim=c(0,ymax) )
+  polygon(tempfrac0lf.d2[[i]], col=EGAD::make_transparent(colsex[1]))
+  polygon(tempfrac0lm.d2[[i]], col=EGAD::make_transparent(colsex[2]))
+
+} 
+dev.off()
 
 ### Co-expression by cell-type and sex.
 #### Panel B: 
