@@ -5,9 +5,15 @@
 
 ### Differential expression analysis 
 - figure3_code contains DE analysis scripts
+- DEG folder contains scripts to run on a HPC 
   
 ### eQTL analysis 
-- code is located in this github:  https://github.com/s-yazar/onek1k-sex_differences
+- Prepare the chromosome files
+- sex-interacting 
+- sex-specific 
+- X chromosome specific (depletion folder) 
+- Replication analysis
+- Plotting
 
 ### Supplementary analysis code
 - Alternate cell proportion analysis
